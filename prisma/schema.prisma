@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Chat {
+  id                      String    @id
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime
+  user1Id                 String
+  user2Id                 String
+  User_Chat_user1IdToUser User      @relation("Chat_user1IdToUser", fields: [user1Id], references: [id])
+  User_Chat_user2IdToUser User      @relation("Chat_user2IdToUser", fields: [user2Id], references: [id])
+  Message                 Message[]
+
+  @@unique([user1Id, user2Id])
+}
+
+model Comment {
+  id        String   @id
+  content   String
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  Post      Post     @relation(fields: [postId], references: [id])
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+model Leaderboard {
+  id        String @id
+  userId    String @unique
+  postCount Int    @default(0)
+  streak    Int    @default(0)
+  rank      Int
+  score     Int
+  User      User   @relation(fields: [userId], references: [id])
+}
+
+model Like {
+  id        String   @id
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  Post      Post     @relation(fields: [postId], references: [id])
+  User      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, postId])
+}
+
+model Message {
+  id        String   @id
+  content   String
+  createdAt DateTime @default(now())
+  senderId  String
+  chatId    String
+  isRead    Boolean  @default(false)
+  Chat      Chat     @relation(fields: [chatId], references: [id])
+  User      User     @relation(fields: [senderId], references: [id])
+}
+
+model Notification {
+  id        String           @id
+  userId    String
+  message   String
+  type      NotificationType
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  User      User             @relation(fields: [userId], references: [id])
+}
+
+model Post {
+  id        String    @id
+  content   String
+  userId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+  tags      String[]
+  slug      String    @unique
+  Comment   Comment[]
+  Like      Like[]
+  User      User      @relation(fields: [userId], references: [id])
+  PostTag   PostTag[]
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  Post   Post   @relation(fields: [postId], references: [id])
+  Tag    Tag    @relation(fields: [tagId], references: [id])
+
+  @@id([postId, tagId])
+}
+
+model Reminder {
+  id         String   @id
+  userId     String   @unique
+  lastSentAt DateTime @default(now())
+  User       User     @relation(fields: [userId], references: [id])
+}
+
+model Streak {
+  id            String   @id
+  userId        String   @unique
+  currentStreak Int      @default(0)
+  longestStreak Int      @default(0)
+  lastUpdated   DateTime @default(now())
+  User          User     @relation(fields: [userId], references: [id])
+}
+
+model Tag {
+  id      String    @id
+  name    String    @unique
+  PostTag PostTag[]
+}
+
+model User {
+  id                      String         @id
+  name                    String
+  email                   String         @unique
+  image                   String?
+  role                    Role           @default(STUDENT)
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime
+  lastPostedAt            DateTime?
+  password                String
+  Chat_Chat_user1IdToUser Chat[]         @relation("Chat_user1IdToUser")
+  Chat_Chat_user2IdToUser Chat[]         @relation("Chat_user2IdToUser")
+  Comment                 Comment[]
+  Leaderboard             Leaderboard?
+  Like                    Like[]
+  Message                 Message[]
+  Notification            Notification[]
+  Post                    Post[]
+  Reminder                Reminder?
+  Streak                  Streak?
+  UserDetail              UserDetail?
+}
+
+model UserDetail {
+  id         String   @id
+  userId     String   @unique
+  about      String?
+  github     String?  @unique
+  linkedin   String?  @unique
+  website    String?  @unique
+  skills     String[]
+  education  String?
+  experience String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum NotificationType {
+  REMINDER
+  SYSTEM_UPDATE
+  COMMENT
+  LIKE
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+}
