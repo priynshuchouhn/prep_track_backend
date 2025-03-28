@@ -7,153 +7,156 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Chat {
-  id                      String    @id
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime
-  user1Id                 String
-  user2Id                 String
-  User_Chat_user1IdToUser User      @relation("Chat_user1IdToUser", fields: [user1Id], references: [id])
-  User_Chat_user2IdToUser User      @relation("Chat_user2IdToUser", fields: [user2Id], references: [id])
-  Message                 Message[]
-
-  @@unique([user1Id, user2Id])
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  image         String?
+  role          Role           @default(STUDENT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  lastPostedAt  DateTime?
+  password      String
+  chatsAsUser1  Chat[]         @relation("ChatUser1")
+  chatsAsUser2  Chat[]         @relation("ChatUser2")
+  comments      Comment[]
+  leaderboard   Leaderboard?
+  likes         Like[]
+  messages      Message[]
+  notifications Notification[]
+  posts         Post[]
+  reminder      Reminder?
+  streak        Streak?
+  UserDetail    UserDetail?
 }
 
-model Comment {
-  id        String   @id
+model UserDetail {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  about    String?
+  github   String? @unique
+  linkedin String? @unique
+  website  String? @unique
+
+  skills     String[]
+  education  String?
+  experience String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id        String    @id @default(uuid())
   content   String
   userId    String
-  postId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-  Post      Post     @relation(fields: [postId], references: [id])
-  User      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  slug      String    @unique
+  tags      String[]
+  comments  Comment[]
+  likes     Like[]
+  user      User      @relation(fields: [userId], references: [id])
+  postTag   PostTag[]
+}
+
+model Reminder {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  lastSentAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
 }
 
 model Leaderboard {
-  id        String @id
+  id        String @id @default(uuid())
   userId    String @unique
   postCount Int    @default(0)
   streak    Int    @default(0)
   rank      Int
   score     Int
-  User      User   @relation(fields: [userId], references: [id])
+  user      User   @relation(fields: [userId], references: [id])
 }
 
-model Like {
-  id        String   @id
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
   userId    String
   postId    String
   createdAt DateTime @default(now())
-  Post      Post     @relation(fields: [postId], references: [id])
-  User      User     @relation(fields: [userId], references: [id])
+  updatedAt DateTime @updatedAt
+  post      Post     @relation(fields: [postId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, postId])
 }
 
-model Message {
-  id        String   @id
-  content   String
-  createdAt DateTime @default(now())
-  senderId  String
-  chatId    String
-  isRead    Boolean  @default(false)
-  Chat      Chat     @relation(fields: [chatId], references: [id])
-  User      User     @relation(fields: [senderId], references: [id])
-}
-
 model Notification {
-  id        String           @id
+  id        String           @id @default(uuid())
   userId    String
   message   String
   type      NotificationType
   read      Boolean          @default(false)
   createdAt DateTime         @default(now())
-  User      User             @relation(fields: [userId], references: [id])
+  user      User             @relation(fields: [userId], references: [id])
 }
 
-model Post {
-  id        String    @id
-  content   String
-  userId    String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime
-  tags      String[]
-  slug      String    @unique
-  Comment   Comment[]
-  Like      Like[]
-  User      User      @relation(fields: [userId], references: [id])
-  PostTag   PostTag[]
+model Tag {
+  id    String    @id @default(uuid())
+  name  String    @unique
+  posts PostTag[]
 }
 
 model PostTag {
   postId String
   tagId  String
-  Post   Post   @relation(fields: [postId], references: [id])
-  Tag    Tag    @relation(fields: [tagId], references: [id])
+  post   Post   @relation(fields: [postId], references: [id])
+  tag    Tag    @relation(fields: [tagId], references: [id])
 
   @@id([postId, tagId])
 }
 
-model Reminder {
-  id         String   @id
-  userId     String   @unique
-  lastSentAt DateTime @default(now())
-  User       User     @relation(fields: [userId], references: [id])
-}
-
 model Streak {
-  id            String   @id
+  id            String   @id @default(uuid())
   userId        String   @unique
   currentStreak Int      @default(0)
   longestStreak Int      @default(0)
   lastUpdated   DateTime @default(now())
-  User          User     @relation(fields: [userId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
 }
 
-model Tag {
-  id      String    @id
-  name    String    @unique
-  PostTag PostTag[]
+model Chat {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user1Id   String
+  user2Id   String
+  user1     User      @relation("ChatUser1", fields: [user1Id], references: [id])
+  user2     User      @relation("ChatUser2", fields: [user2Id], references: [id])
+  messages  Message[]
+
+  @@unique([user1Id, user2Id])
 }
 
-model User {
-  id                      String         @id
-  name                    String
-  email                   String         @unique
-  image                   String?
-  role                    Role           @default(STUDENT)
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime
-  lastPostedAt            DateTime?
-  password                String
-  Chat_Chat_user1IdToUser Chat[]         @relation("Chat_user1IdToUser")
-  Chat_Chat_user2IdToUser Chat[]         @relation("Chat_user2IdToUser")
-  Comment                 Comment[]
-  Leaderboard             Leaderboard?
-  Like                    Like[]
-  Message                 Message[]
-  Notification            Notification[]
-  Post                    Post[]
-  Reminder                Reminder?
-  Streak                  Streak?
-  UserDetail              UserDetail?
-}
-
-model UserDetail {
-  id         String   @id
-  userId     String   @unique
-  about      String?
-  github     String?  @unique
-  linkedin   String?  @unique
-  website    String?  @unique
-  skills     String[]
-  education  String?
-  experience String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime
-  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  senderId  String
+  chatId    String
+  isRead    Boolean  @default(false)
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  sender    User     @relation(fields: [senderId], references: [id])
 }
 
 enum NotificationType {
